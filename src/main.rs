@@ -2,11 +2,11 @@
 #![feature(result_contains_err)]
 #![allow(dead_code)]
 
+pub mod bitboard;
 pub mod board;
 pub mod enums;
-pub mod bitboard;
-pub mod utils;
 pub mod rnd;
+pub mod utils;
 
 fn main() {
     println!("Hello, world!");

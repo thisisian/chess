@@ -3,7 +3,7 @@
 pub fn count_bits(mut x: u64) -> u8 {
     let mut count: u8 = 0;
     while x != 0 {
-        x = x & (x-1);
+        x = x & (x - 1);
         count += 1;
     }
     count
@@ -50,6 +50,8 @@ mod tests {
 
     #[test]
     fn count_bits_33() {
-        assert!(count_bits(0b0101011101101001100000011011000100110111111010111011000110100001) == 33);
+        assert!(
+            count_bits(0b0101011101101001100000011011000100110111111010111011000110100001) == 33
+        );
     }
 }

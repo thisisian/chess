@@ -70,23 +70,21 @@ struct BbState {
 
 impl PieceState for BbPieceState {
     fn check_valid(&self) -> Result<(), PieceStateValidatorErr> {
-
         fn check_correct_number_of_kings(ps: &BbPieceState) -> Result<(), PieceStateValidatorErr> {
             let kings = ps.bk & ps.wk;
             if kings.count_bits() != 2 {
                 return Err(PieceStateValidatorErr::MissingKing);
             } else {
-                return Ok(())
+                return Ok(());
             }
-        };
-
+        }
 
         #[inline]
         fn check_pieces_on_same_square(ps: &BbPieceState) -> bool {
             #[inline]
             fn check(bb: &mut Bitboard, rhs: Bitboard) -> bool {
                 if *bb & rhs != Bitboard::default() {
-                    return false
+                    return false;
                 }
                 *bb |= rhs;
                 return true;
@@ -94,18 +92,17 @@ impl PieceState for BbPieceState {
 
             let mut s = ps.wp;
             check(&mut s, ps.wb)
-            && check(&mut s, ps.wq)
-            && check(&mut s, ps.wk)
-            && check(&mut s, ps.bp)
-            && check(&mut s, ps.bb)
-            && check(&mut s, ps.bn)
-            && check(&mut s, ps.br)
-            && check(&mut s, ps.bq)
-            && check(&mut s, ps.bk)
-        };
+                && check(&mut s, ps.wq)
+                && check(&mut s, ps.wk)
+                && check(&mut s, ps.bp)
+                && check(&mut s, ps.bb)
+                && check(&mut s, ps.bn)
+                && check(&mut s, ps.br)
+                && check(&mut s, ps.bq)
+                && check(&mut s, ps.bk)
+        }
 
         check_correct_number_of_kings(self)?;
-
 
         todo!()
     }

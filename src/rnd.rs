@@ -7,12 +7,14 @@ pub trait RndGen<T> {
 }
 
 struct Xoshiro256p {
-    s: State
+    s: State,
 }
 
 impl RndGen<u64> for Xoshiro256p {
     fn initialize(x: u64) -> Self {
-       Xoshiro256p { s : generate_init_state(x) }
+        Xoshiro256p {
+            s: generate_init_state(x),
+        }
     }
 
     fn next(&mut self) -> u64 {
@@ -36,7 +38,7 @@ fn xoshiro256p(state: &mut State) -> u64 {
 }
 
 #[inline]
-fn rol64(x : u64, k: u32) -> u64 {
+fn rol64(x: u64, k: u32) -> u64 {
     (x << k) | (x >> (64 - k))
 }
 
