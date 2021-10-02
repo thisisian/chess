@@ -1,10 +1,10 @@
-type State = [u64; 4];
-
 pub trait RndGen<T> {
     fn initialize(x: T) -> Self;
 
     fn next(&mut self) -> T;
 }
+
+type State = [u64; 4];
 
 struct Xoshiro256p {
     s: State,
@@ -24,7 +24,7 @@ impl RndGen<u64> for Xoshiro256p {
 
 #[inline]
 fn xoshiro256p(state: &mut State) -> u64 {
-    let res = state[0] + state[3];
+    let res = state[0].wrapping_add(state[3]);
     let t = state[1] << 17;
 
     state[2] ^= state[0];
@@ -54,9 +54,22 @@ fn generate_init_state(mut init: u64) -> State {
 // SplitMix64... for generating initial values
 #[inline]
 fn splitmix64(x: &mut u64) -> u64 {
-    *x += 0x9E3779B97f4A7C15;
+    *x = x.wrapping_add(0x9E3779B97F4A7C15);
     let mut ret = *x;
-    ret = (ret ^ (ret >> 30)) * 0xBF58476D1CE4E5B9;
-    ret = (ret ^ (ret >> 27)) * 0x94D049BB133111EB;
+    ret = (ret ^ (ret >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+    ret = (ret ^ (ret >> 27)).wrapping_mul(0x94D049BB133111EB);
     ret ^ (ret >> 31)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn should_gen_numbers() {
+        let mut x = Xoshiro256p::initialize(0);
+        for _ in 0..1000 {
+            println!("{}", x.next());
+        }
+    }
 }

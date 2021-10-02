@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn count_bits_max_min_es_48() {
-        assert!(count_bits(0xeeeeeeeeeeeeeeee) == 63);
+        assert!(count_bits(0xeeeeeeeeeeeeeeee) == 48);
     }
 
     #[test]

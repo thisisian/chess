@@ -68,15 +68,13 @@ struct BbState {
     // move
 }
 
+
+
 impl PieceState for BbPieceState {
     fn check_valid(&self) -> Result<(), PieceStateValidatorErr> {
-        fn check_correct_number_of_kings(ps: &BbPieceState) -> Result<(), PieceStateValidatorErr> {
+        fn check_wrong_number_of_kings(ps: &BbPieceState) -> bool {
             let kings = ps.bk & ps.wk;
-            if kings.count_bits() != 2 {
-                return Err(PieceStateValidatorErr::MissingKing);
-            } else {
-                return Ok(());
-            }
+            kings.count_bits() != 2
         }
 
         #[inline]
@@ -87,7 +85,7 @@ impl PieceState for BbPieceState {
                     return false;
                 }
                 *bb |= rhs;
-                return true;
+                true
             }
 
             let mut s = ps.wp;
@@ -102,8 +100,13 @@ impl PieceState for BbPieceState {
                 && check(&mut s, ps.bk)
         }
 
-        check_correct_number_of_kings(self)?;
+        if check_pieces_on_same_square(self) {
+            return Err(PieceStateValidatorErr::PiecesOnSamePosition);
+        }
 
+        if check_wrong_number_of_kings(self) {
+            return Err(PieceStateValidatorErr::MissingKing);
+        }
         todo!()
     }
 }
