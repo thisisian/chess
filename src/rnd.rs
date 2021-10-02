@@ -33,7 +33,7 @@ fn xoshiro256p(state: &mut State) -> u64 {
     state[0] ^= state[3];
 
     state[2] ^= t;
-    state[3] ^= rol64(state[3], 45);
+    state[3] = rol64(state[3], 45);
     res
 }
 
@@ -66,10 +66,43 @@ mod tests {
     use super::*;
 
     #[test]
-    fn should_gen_numbers() {
-        let mut x = Xoshiro256p::initialize(0);
-        for _ in 0..1000 {
-            println!("{}", x.next());
+    fn splitmix_should_match_reference() {
+        let mut x = 12345;
+        let reference = [
+            0x22118258a9d111a0,
+            0x346edce5f713f8ed,
+            0x1e9a57bc80e6721d,
+            0x2d160e7e5c3f42ca,
+            0x81c2e6dc980d78eb,
+            0x5647e55ad933f62e,
+            0x1f6622b40cb38e42,
+            0x6e7411b06820371c,
+            0x7ad34039583ab917,
+            0xde15eab5ce53fecf,
+        ];
+        for r in reference {
+            assert!(splitmix64(&mut x) == r);
+        }
+    }
+
+    #[test]
+    fn should_match_reference() {
+        let mut rnd = Xoshiro256p::initialize(12345);
+        let reference = [
+            0x4f2790d70610546a,
+            0xd2ae33f21d5120ec,
+            0xa28f6ee203d01e40,
+            0x213ef47a5a3a7584,
+            0x6fca7fc6dca44620,
+            0x551ccf8e381c05d8,
+            0x923ea5d5a99f0222,
+            0x6b01089f2b43f45b,
+            0x3ba539cf67a16a4f,
+            0x576042cbf1a61fab,
+        ];
+        for r in reference {
+            let x = rnd.next();
+            assert!(r == x);
         }
     }
 }
