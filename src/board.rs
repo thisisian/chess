@@ -22,7 +22,7 @@ pub trait PieceState {
     fn check_valid(&self) -> Result<(), PieceStateValidatorErr>;
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum PieceStateValidatorErr {
     MissingKing,
     PawnsOnOppositeRank,
@@ -68,25 +68,28 @@ struct BbState {
     // move
 }
 
-
-
 impl PieceState for BbPieceState {
     fn check_valid(&self) -> Result<(), PieceStateValidatorErr> {
+        println!("HELLO!\n");
         fn check_wrong_number_of_kings(ps: &BbPieceState) -> bool {
-            let kings = ps.bk & ps.wk;
+            let kings = ps.bk | ps.wk;
+            println!("BK:{}", ps.bk.pretty_string());
+            println!("WK:{}", ps.wk.pretty_string());
+            println!("BITS:{}", kings.pretty_string());
             kings.count_bits() != 2
         }
 
         #[inline]
-        fn check_pieces_on_same_square(ps: &BbPieceState) -> bool {
-            #[inline]
+        fn no_pieces_on_same_square(ps: &BbPieceState) -> bool {
             fn check(bb: &mut Bitboard, rhs: Bitboard) -> bool {
+                println!("{}\n", bb.pretty_string());
                 if *bb & rhs != Bitboard::default() {
                     return false;
                 }
                 *bb |= rhs;
                 true
             }
+            println! {"HELLO?\n"};
 
             let mut s = ps.wp;
             check(&mut s, ps.wb)
@@ -100,13 +103,13 @@ impl PieceState for BbPieceState {
                 && check(&mut s, ps.bk)
         }
 
-        if check_pieces_on_same_square(self) {
-            return Err(PieceStateValidatorErr::PiecesOnSamePosition);
-        }
-
         if check_wrong_number_of_kings(self) {
             return Err(PieceStateValidatorErr::MissingKing);
         }
+        if !no_pieces_on_same_square(self) {
+            return Err(PieceStateValidatorErr::PiecesOnSamePosition);
+        }
+
         todo!()
     }
 }
@@ -145,11 +148,12 @@ mod tests {
             wk: Bitboard::new(2),
             bp: Bitboard::new(0),
             bb: Bitboard::new(0),
-            bn: Bitboard::new(0),
+            bn: Bitboard::new(2),
             br: Bitboard::new(0),
             bq: Bitboard::new(0),
             bk: Bitboard::new(32),
         };
+        println!("{:?}", ps.check_valid());
         assert!(ps
             .check_valid()
             .contains_err(&PieceStateValidatorErr::PiecesOnSamePosition))

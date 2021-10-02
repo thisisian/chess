@@ -14,6 +14,7 @@ pub enum Piece {
     K = 5,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum Rank {
     R1 = 0,
     R2 = 1,
@@ -25,7 +26,8 @@ pub enum Rank {
     R8 = 7,
 }
 
-enum File {
+#[derive(Debug, Clone, Copy)]
+pub enum File {
     A = 0,
     B = 1,
     C = 2,
