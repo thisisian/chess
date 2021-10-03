@@ -7,6 +7,7 @@ pub mod board;
 pub mod enums;
 pub mod rnd;
 pub mod utils;
+mod Bitboard;
 
 fn main() {
     println!("Hello, world!");

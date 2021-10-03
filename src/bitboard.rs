@@ -120,7 +120,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn pretty_string_should_one() {
+    fn get_rank_tests() {
+        let b: Bitboard = Bitboard {
+            val: 0xfedcba9876543210,
+        };
+        assert!(b.get_rank(Rank::R1) == 0x10);
+        assert!(b.get_rank(Rank::R2) == 0x32);
+        assert!(b.get_rank(Rank::R3) == 0x54);
+        assert!(b.get_rank(Rank::R4) == 0x76);
+        assert!(b.get_rank(Rank::R5) == 0x98);
+        assert!(b.get_rank(Rank::R6) == 0xba);
+        assert!(b.get_rank(Rank::R7) == 0xdc);
+        assert!(b.get_rank(Rank::R8) == 0xfe);
+    }
+
+    #[test]
+    fn pretty_string_should_show_first_bit() {
         let b = Bitboard { val: 1 };
 
         let expected = "00000000\n\
@@ -142,20 +157,30 @@ mod tests {
     }
 
     #[test]
-    fn get_rank_gets_1() {
-        let b = Bitboard { val: 1 };
-        assert!(b.get_rank(Rank::R1) == 1)
-    }
-    #[test]
-    fn get_rank_gets_112() {
-        let b = Bitboard { val: 112 };
-        assert!(b.get_rank(Rank::R1) == 112);
-    }
+    fn pretty_string_should_show_last_bit() {
+        let b = Bitboard { val: 2_u64.pow(63) };
 
-    #[test]
-    fn get_rank_gets_256() {
-        let b = Bitboard { val: 256 };
-        assert!(b.get_rank(Rank::R2) == 1);
+        for i in 0..64 {
+            let x = Bitboard { val: 2 ^ i };
+            println!("{}:\n{}\n", i, x.pretty_string());
+        }
+
+        let expected = "00000001\n\
+         00000000\n\
+         00000000\n\
+         00000000\n\
+         00000000\n\
+         00000000\n\
+         00000000\n\
+         00000000\n";
+
+        let actual = b.pretty_string();
+        assert!(
+            expected == actual,
+            "expected:\n`{}`\n got:\n`{}`\n",
+            expected,
+            actual
+        );
     }
 
     #[test]
@@ -180,37 +205,5 @@ mod tests {
             actual
         );
     }
-    #[test]
-    fn pretty_string_should_64th_bit() {
-        let b = Bitboard {
-            val: 0x8000000000000000,
-        };
 
-        println!("bit:{}", b.get_rank(Rank::R8));
-
-        let expected = "00000001\n\
-         00000000\n\
-         00000000\n\
-         00000000\n\
-         00000000\n\
-         00000000\n\
-         00000000\n\
-         00000000\n";
-
-        let actual = b.pretty_string();
-        assert!(
-            expected == actual,
-            "expected:\n`{}`\n got:\n`{}`\n",
-            expected,
-            actual
-        );
-    }
-
-    #[test]
-    fn test_get_file_1() {
-        let b = Bitboard { val: 1 };
-        let expected = 1;
-        let actual = b.get_file(File::A);
-        assert!(expected == actual)
-    }
 }
