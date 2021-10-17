@@ -1,5 +1,28 @@
-type Move = (Square, Square);
+
+
+pub struct Move {
+    from_to: (Square, Square),
+    move_type: MoveType
+}
 type Offset = u64;
+
+#[derive(Debug)]
+enum MoveType {
+    Quiet,
+    Capture,
+    CastleQueen,
+    CastleKing,
+    Promote(PromotionType)
+    PromoteCapture(PromotionType)
+}
+
+#[derive(Debug))]
+enum PromotionType {
+    Queen,
+    Rook,
+    Bishop,
+    Knight
+}
 
 // Direction and a distance
 type Compass = (Square, Direction, u8);

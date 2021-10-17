@@ -4,10 +4,11 @@
 
 pub mod bitboard;
 pub mod board;
+pub mod consts;
 pub mod enums;
 pub mod rnd;
 pub mod utils;
-mod Bitboard;
+pub mod fen;
 
 fn main() {
     println!("Hello, world!");

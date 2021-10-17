@@ -8,12 +8,32 @@ type RankBits = u8;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Bitboard {
-    val: u64,
+    pub val: u64,
 }
 
 impl Bitboard {
+    pub const fn new(x: u64) -> Bitboard {
+        Bitboard { val: x }
+    }
+
+    pub fn empty() -> Bitboard {
+        Bitboard { val: 0 }
+    }
+
+    pub fn universe() -> Bitboard {
+        Bitboard { val: !0 }
+    }
+
     pub fn count_bits(&self) -> u8 {
         count_bits(self.val)
+    }
+
+    pub fn is_subset(&self, rhs: Bitboard) -> bool {
+        *self & rhs == *self
+    }
+
+    pub fn is_disjoint(&self, rhs: Bitboard) -> bool {
+        *self & rhs == Bitboard::empty()
     }
 
     pub fn get_rank(&self, rank: Rank) -> RankBits {
@@ -62,15 +82,17 @@ impl Bitboard {
             r8, r7, r6, r5, r4, r3, r2, r1
         )
     }
-
-    pub fn new(x: u64) -> Bitboard {
-        Bitboard { val: x }
-    }
 }
 
 impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.val ^= rhs.val
+    }
+}
+
+impl BitXorAssign<u64> for Bitboard {
+    fn bitxor_assign(&mut self, rhs: u64) {
+        self.val ^= rhs
     }
 }
 
@@ -83,9 +105,26 @@ impl BitXor for Bitboard {
         }
     }
 }
+
+impl BitXor<u64> for Bitboard {
+    type Output = Bitboard;
+
+    fn bitxor(self, rhs: u64) -> Self::Output {
+        Bitboard {
+            val: self.val ^ rhs,
+        }
+    }
+}
+
 impl BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.val |= rhs.val
+    }
+}
+
+impl BitOrAssign<u64> for Bitboard {
+    fn bitor_assign(&mut self, rhs: u64) {
+        self.val |= rhs
     }
 }
 
@@ -99,9 +138,25 @@ impl BitOr for Bitboard {
     }
 }
 
+impl BitOr<u64> for Bitboard {
+    type Output = Bitboard;
+
+    fn bitor(self, rhs: u64) -> Self::Output {
+        Bitboard {
+            val: self.val | rhs,
+        }
+    }
+}
+
 impl BitAndAssign for Bitboard {
     fn bitand_assign(&mut self, rhs: Self) {
         self.val &= rhs.val
+    }
+}
+
+impl BitAndAssign<u64> for Bitboard {
+    fn bitand_assign(&mut self, rhs: u64) {
+        self.val &= rhs
     }
 }
 
@@ -115,9 +170,80 @@ impl BitAnd for Bitboard {
     }
 }
 
+impl BitAnd<u64> for Bitboard {
+    type Output = Bitboard;
+
+    fn bitand(self, rhs: u64) -> Self::Output {
+        Bitboard {
+            val: self.val & rhs,
+        }
+    }
+}
+
+impl Shl<u8> for Bitboard {
+    type Output = Bitboard;
+
+    fn shl(self, rhs: u8) -> Self::Output {
+        Bitboard {
+            val: self.val << rhs,
+        }
+    }
+}
+
+impl ShlAssign<u8> for Bitboard {
+    fn shl_assign(&mut self, rhs: u8) {
+        self.val <<= rhs;
+    }
+}
+
+impl Shr<u8> for Bitboard {
+    type Output = Bitboard;
+
+    fn shr(self, rhs: u8) -> Self::Output {
+        Bitboard {
+            val: self.val >> rhs,
+        }
+    }
+}
+
+impl ShrAssign<u8> for Bitboard {
+    fn shr_assign(&mut self, rhs: u8) {
+        self.val >>= rhs;
+    }
+}
+
+impl Not for Bitboard {
+    type Output = Bitboard;
+
+    fn not(self) -> Self::Output {
+        Bitboard { val: !self.val }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn subset_tests() {
+        let b1: Bitboard = Bitboard { val: 0xfedcba9876543210 };
+        let b2: Bitboard = !b1;
+        assert!(!b1.is_subset(b2));
+        let b3 = b1 & b2;
+        assert!(b3.is_subset(b2));
+        assert!(!Bitboard::new(1).is_subset(Bitboard::new(0)));
+        assert!(Bitboard::new(0).is_subset(Bitboard::new(1)));
+    }
+
+    #[test]
+    fn disjoint_tests() {
+        assert!(Bitboard::new(1).is_disjoint(Bitboard::new(0)));
+        assert!(Bitboard::new(0).is_disjoint(Bitboard::new(1)));
+        let b1: Bitboard = Bitboard { val: 0xfedcba9876543210 };
+        let b2: Bitboard = !b1;
+        assert!(b1.is_disjoint(b2));
+        assert!(b2.is_disjoint(b1));
+    }
 
     #[test]
     fn get_rank_tests() {
