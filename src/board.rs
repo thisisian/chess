@@ -1,5 +1,6 @@
-use crate::bitboard::*;
+use crate::consts::{COORDS, TOP_LEFT};
 use crate::enums::{Side, SideSet};
+use crate::{bitboard::*, enums};
 
 pub trait Board {
     type Move;
@@ -8,32 +9,13 @@ pub trait Board {
 
     fn make_move(&self, m: Self::Move) -> Self;
 
+    fn pretty_print(&self) -> String;
+
     // TODO: Empty
 
     // TODO: Start position
 
     // TODO: validate function
-}
-
-pub enum MoveResult {}
-
-pub trait PieceState {
-    // Check for logic errors in the piece state
-    fn check_valid(&self) -> Result<(), PieceStateValidatorErr>;
-}
-
-#[derive(PartialEq, Debug)]
-pub enum PieceStateValidatorErr {
-    MissingKing,
-    PawnsOnOppositeRank,
-    ExtraPawns,
-    IllegalPosition,
-    PiecesOnSamePosition,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Square {
-    val: u8,
 }
 
 #[derive(Debug, Default, PartialEq)]
@@ -50,6 +32,45 @@ struct BbPieceState {
     br: Bitboard,
     bq: Bitboard,
     bk: Bitboard,
+}
+
+struct BoardState {
+    pieces: BbPieceState,
+    en_passant: enums::File,
+    reversable_moves: u8,
+    b_castling_kingside: bool,
+    b_castling_queenside: bool,
+    w_castling_kingside: bool,
+    w_castling_queenside: bool,
+}
+
+pub trait PieceState {
+    // Check for logic errors in the piece state
+    fn check_valid(&self) -> Result<(), PieceStateValidatorErr>;
+
+    fn pretty_print(&self) -> String;
+
+    fn start() -> Self;
+}
+
+#[derive(PartialEq, Debug)]
+pub enum PieceStateValidatorErr {
+    MissingKing,
+    PawnsOnOppositeRank,
+    ExtraPawns,
+    IllegalPosition,
+    PiecesOnSamePosition,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Square {
+    val: u8,
+}
+
+impl Square {
+    pub const fn new(v: u8) -> Self {
+        Square { val: v }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -70,12 +91,8 @@ struct BbState {
 
 impl PieceState for BbPieceState {
     fn check_valid(&self) -> Result<(), PieceStateValidatorErr> {
-        println!("HELLO!\n");
         fn check_wrong_number_of_kings(ps: &BbPieceState) -> bool {
             let kings = ps.bk | ps.wk;
-            println!("BK:{}", ps.bk.pretty_string());
-            println!("WK:{}", ps.wk.pretty_string());
-            println!("BITS:{}", kings.pretty_string());
             kings.count_bits() != 2
         }
 
@@ -89,7 +106,6 @@ impl PieceState for BbPieceState {
                 *bb |= rhs;
                 true
             }
-            println! {"HELLO?\n"};
 
             let mut s = ps.wp;
             check(&mut s, ps.wb)
@@ -112,6 +128,61 @@ impl PieceState for BbPieceState {
 
         todo!()
     }
+
+    fn pretty_print(&self) -> String {
+        let mut s = String::new();
+        for square in TOP_LEFT {
+            let coord = COORDS[square.val as usize];
+            if (self.wp & coord).val > 0 {
+                s.push('P')
+            } else if (self.wb & coord).val > 0 {
+                s.push('B')
+            } else if (self.wn & coord).val > 0 {
+                s.push('N')
+            } else if (self.wr & coord).val > 0 {
+                s.push('R')
+            } else if (self.wq & coord).val > 0 {
+                s.push('Q')
+            } else if (self.wk & coord).val > 0 {
+                s.push('K')
+            } else if (self.bp & coord).val > 0 {
+                s.push('p')
+            } else if (self.bb & coord).val > 0 {
+                s.push('b')
+            } else if (self.bn & coord).val > 0 {
+                s.push('n')
+            } else if (self.br & coord).val > 0 {
+                s.push('r')
+            } else if (self.bq & coord).val > 0 {
+                s.push('q')
+            } else if (self.bk & coord).val > 0 {
+                s.push('k')
+            } else {
+                s.push('.')
+            }
+            if (square.val + 1) % 8 == 0 {
+                s.push('\n')
+            }
+        }
+        s
+    }
+
+    fn start() -> Self {
+        BbPieceState {
+            wp: Bitboard::new(0xff00),
+            wb: Bitboard::new(0x24),
+            wn: Bitboard::new(0x42),
+            wr: Bitboard::new(0x81),
+            wq: Bitboard::new(0x8),
+            wk: Bitboard::new(0x10),
+            bp: Bitboard::new(0xff000000000000),
+            bb: Bitboard::new(0x2400000000000000),
+            bn: Bitboard::new(0x4200000000000000),
+            br: Bitboard::new(0x8100000000000000),
+            bq: Bitboard::new(0x0800000000000000),
+            bk: Bitboard::new(0x1000000000000000),
+        }
+    }
 }
 
 impl Board for BbState {
@@ -122,6 +193,10 @@ impl Board for BbState {
     }
 
     fn make_move(&self, _: Self::Move) -> Self {
+        todo!()
+    }
+
+    fn pretty_print(&self) -> String {
         todo!()
     }
 }
@@ -157,5 +232,20 @@ mod tests {
         assert!(ps
             .check_valid()
             .contains_err(&PieceStateValidatorErr::PiecesOnSamePosition))
+    }
+
+    #[test]
+    fn bbps_pretty_print_start() {
+        let start = BbPieceState::start();
+        let expected = "rnbqkbnr\n\
+                             pppppppp\n\
+                             ........\n\
+                             ........\n\
+                             ........\n\
+                             ........\n\
+                             PPPPPPPP\n\
+                             RNBQKBNR\n";
+        println!("{}",start.pretty_print());
+        assert!(start.pretty_print() == expected)
     }
 }

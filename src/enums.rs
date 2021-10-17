@@ -46,3 +46,8 @@ pub enum SideSet {
     Black,
     Both,
 }
+
+pub enum BoardSide {
+    QueenSide,
+    KingSide
+}
