@@ -9,6 +9,8 @@ pub fn count_bits(mut x: u64) -> u8 {
     count
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -30,7 +32,7 @@ mod tests {
 
     #[test]
     fn count_bits_2_1() {
-        assert!(count_bits(1) == 1);
+        assert!(count_bits(2) == 1);
     }
 
     #[test]
