@@ -1,4 +1,5 @@
 #![feature(result_contains_err)]
+#![feature(is_some_and)]
 #![allow(dead_code)]
 
 pub mod bitboard;

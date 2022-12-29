@@ -1,7 +1,8 @@
 use std::fmt::Binary;
 use std::ops::*;
+use std::str::Chars;
 
-use crate::api::{File, GameState, PieceState, Rank, Side, Square};
+use crate::api::{File, PieceState, Rank, Side, Square};
 use crate::utils::count_bits;
 
 pub const TOP_LEFT: [Square; 64] = [
@@ -70,29 +71,31 @@ pub const TOP_LEFT: [Square; 64] = [
     Square::new(6),
     Square::new(7),
 ];
+#[derive(PartialEq)]
 struct BbPieceState {
     wp: Bitboard,
-    wb: Bitboard,
-    wn: Bitboard,
     wr: Bitboard,
+    wn: Bitboard,
+    wb: Bitboard,
     wq: Bitboard,
     wk: Bitboard,
     bp: Bitboard,
-    bb: Bitboard,
-    bn: Bitboard,
     br: Bitboard,
+    bn: Bitboard,
+    bb: Bitboard,
     bq: Bitboard,
     bk: Bitboard,
 }
 
 pub struct BbBoardState {
     pieces: BbPieceState,
-    en_passant: File,
+    to_move: Side,
+    en_passant: Option<File>,
     reversable_moves: u8,
-    b_castling_kingside: bool,
-    b_castling_queenside: bool,
-    w_castling_kingside: bool,
-    w_castling_queenside: bool,
+    w_kingside_castling: bool,
+    w_queenside_castling: bool,
+    b_kingside_castling: bool,
+    b_queenside_castling: bool,
 }
 
 impl PieceState for BbPieceState {
@@ -137,15 +140,15 @@ impl PieceState for BbPieceState {
     fn start() -> Self {
         BbPieceState {
             wp: Bitboard::new(0xff00),
-            wb: Bitboard::new(0x24),
-            wn: Bitboard::new(0x42),
             wr: Bitboard::new(0x81),
+            wn: Bitboard::new(0x42),
+            wb: Bitboard::new(0x24),
             wq: Bitboard::new(0x8),
             wk: Bitboard::new(0x10),
             bp: Bitboard::new(0xff000000000000),
-            bb: Bitboard::new(0x2400000000000000),
-            bn: Bitboard::new(0x4200000000000000),
             br: Bitboard::new(0x8100000000000000),
+            bn: Bitboard::new(0x4200000000000000),
+            bb: Bitboard::new(0x2400000000000000),
             bq: Bitboard::new(0x0800000000000000),
             bk: Bitboard::new(0x1000000000000000),
         }
@@ -154,50 +157,43 @@ impl PieceState for BbPieceState {
     fn empty() -> Self {
         BbPieceState {
             wp: Bitboard::empty(),
-            wb: Bitboard::empty(),
-            wn: Bitboard::empty(),
             wr: Bitboard::empty(),
+            wn: Bitboard::empty(),
+            wb: Bitboard::empty(),
             wq: Bitboard::empty(),
             wk: Bitboard::empty(),
             bp: Bitboard::empty(),
-            bb: Bitboard::empty(),
-            bn: Bitboard::empty(),
             br: Bitboard::empty(),
+            bn: Bitboard::empty(),
+            bb: Bitboard::empty(),
             bq: Bitboard::empty(),
             bk: Bitboard::empty(),
         }
     }
 
     fn is_legal(&self) -> bool {
-        fn check_wrong_number_of_kings(ps: &BbPieceState) -> bool {
+        fn correct_number_of_kings(ps: &BbPieceState) -> bool {
             let kings = ps.bk | ps.wk;
-            kings.count_bits() != 2
+            kings.count_bits() == 2
         }
 
         fn no_pieces_on_same_square(ps: &BbPieceState) -> bool {
-            fn check(bb: &mut Bitboard, rhs: Bitboard) -> bool {
-                if *bb & rhs != Bitboard::empty() {
-                    return false;
-                }
-                *bb |= rhs;
-                true
-            }
-
-            let mut s = ps.wp;
-            check(&mut s, ps.wb)
-                && check(&mut s, ps.wq)
-                && check(&mut s, ps.wk)
-                && check(&mut s, ps.bp)
-                && check(&mut s, ps.bb)
-                && check(&mut s, ps.bn)
-                && check(&mut s, ps.br)
-                && check(&mut s, ps.bq)
-                && check(&mut s, ps.bk)
+            let ps = ps.wp
+                & ps.wr
+                & ps.wn
+                & ps.wb
+                & ps.wq
+                & ps.wk
+                & ps.bp
+                & ps.br
+                & ps.bn
+                & ps.bb
+                & ps.bq
+                & ps.bk;
+            ps.v == 0
         }
 
-        return check_wrong_number_of_kings(self) || !no_pieces_on_same_square(self);
-
-        todo!()
+        return correct_number_of_kings(self) && no_pieces_on_same_square(self);
     }
 
     fn make_move(&self, m: crate::api::Move) -> Self {
@@ -205,67 +201,148 @@ impl PieceState for BbPieceState {
     }
 }
 
-//pub fn parse_fen(s: String) -> Option<BbBoardState> {
-//    let chars = s.as_bytes();
-//    let mut pieces = BbPieceState::empty();
-//    let mut char_idx: usize = 0;
-//    for mut i: u32 in 0..64 {
-//        match chars[char_idx] {
-//            x if b'0' <= x || x <= b'8' => {
-//                i += (x as char).to_digit(10).unwrap();
-//            }
-//            b'p' => pieces.wp = pieces.wp | Bitboard::get_coord(Square::new(i),
-//            b'n' => pieces.wn = pieces.wn | COORDS[i as usize],
-//            b'b' => pieces.wb = pieces.wb | COORDS[i as usize],
-//            b'r' => pieces.wr = pieces.wr | COORDS[i as usize],
-//            b'q' => pieces.wq = pieces.wq | COORDS[i as usize],
-//            b'k' => pieces.wk = pieces.wk | COORDS[i as usize],
-//            b'P' => pieces.bp = pieces.bp | COORDS[i as usize],
-//            b'N' => pieces.bn = pieces.bn | COORDS[i as usize],
-//            b'B' => pieces.bb = pieces.bb | COORDS[i as usize],
-//            b'R' => pieces.br = pieces.br | COORDS[i as usize],
-//            b'Q' => pieces.bq = pieces.bq | COORDS[i as usize],
-//            b'K' => pieces.bk = pieces.bk | COORDS[i as usize],
-//            _ => return None,
-//        };
-//        char_idx += 1;
-//        if (i + 1) % 8 == 0 && i <= 63 {
-//            if chars[char_idx] == b'\\' {
-//                char_idx += 1;
-//            } else {
-//                return None;
-//            }
-//        }
-//    }
-//
-//    if chars[char_idx] == b' ' {
-//        char_idx += 1;
-//    } else {
-//        return None;
-//    }
-//
-//    let to_play = if chars[char_idx] == b'w' {
-//        Side::W
-//    } else if chars[char_idx] == b'b' {
-//        Side::B
-//    } else {
-//        return None;
-//    };
-//
-//    if chars[char_idx] == b' ' {
-//        char_idx += 1;
-//    } else {
-//        return None;
-//    }
-//
-//    //let y = BbBoardState {
-//    //    piece_state: todo!(),
-//    //    moved_kings_and_rooks: todo!(),
-//    //    castle_status: todo!(),
-//    //    active: todo!(),
-//    //}
-//    todo!()
-//}
+pub fn parse_fen(s: String) -> Option<BbBoardState> {
+    let mut chars = s.as_str().chars();
+    let mut pieces = BbPieceState::empty();
+    parse_line(&mut chars, &mut pieces, Rank::R8)?;
+    parse_char(&mut chars, &'/');
+    parse_line(&mut chars, &mut pieces, Rank::R7)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R6)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R5)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R4)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R3)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R2)?;
+    parse_char(&mut chars, &'/')?;
+    parse_line(&mut chars, &mut pieces, Rank::R1)?;
+    parse_char(&mut chars, &' ')?;
+    let to_move = parse_to_move(&mut chars)?;
+    parse_char(&mut chars, &' ')?;
+    let (w_kingside_castling, w_queenside_castling, b_kingside_castling, b_queenside_castling) =
+        parse_castling(&mut chars)?;
+    let en_passant = parse_en_passant(&mut chars)?;
+    parse_char(&mut chars, &' ')?;
+    let reversable_moves = parse_num(&mut chars)? as u8;
+    //let _whole_moves = parse_num(&mut chars)?;
+
+    fn parse_line(chars: &mut Chars, ps: &mut BbPieceState, r: Rank) -> Option<()> {
+        let mut square_ct: u8 = 0;
+        while square_ct < 8 {
+            let c = chars.next()?;
+            match c {
+                '1'..='9' => square_ct += c.to_string().parse::<u8>().unwrap(),
+                'P' => ps.wp.v |= (1 << square_ct) << (r as u8 * 8),
+                'R' => ps.wr.v |= (1 << square_ct) << (r as u8 * 8),
+                'N' => ps.wn.v |= (1 << square_ct) << (r as u8 * 8),
+                'B' => ps.wb.v |= (1 << square_ct) << (r as u8 * 8),
+                'Q' => ps.wq.v |= (1 << square_ct) << (r as u8 * 8),
+                'K' => ps.wk.v |= (1 << square_ct) << (r as u8 * 8),
+                'p' => ps.bp.v |= (1 << square_ct) << (r as u8 * 8),
+                'r' => ps.br.v |= (1 << square_ct) << (r as u8 * 8),
+                'n' => ps.bn.v |= (1 << square_ct) << (r as u8 * 8),
+                'b' => ps.bb.v |= (1 << square_ct) << (r as u8 * 8),
+                'q' => ps.bq.v |= (1 << square_ct) << (r as u8 * 8),
+                'k' => ps.bk.v |= (1 << square_ct) << (r as u8 * 8),
+                _ => return None,
+            }
+            if !c.is_numeric() {
+                square_ct += 1;
+            }
+        }
+        if square_ct == 8 {
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn parse_char(chars: &mut Chars, char: &char) -> Option<()> {
+        chars.next().filter(|x| x == char).map(|_x| ())
+    }
+
+    fn parse_to_move(chars: &mut Chars) -> Option<Side> {
+        match chars.next()? {
+            'w' => Some(Side::White),
+            'b' => Some(Side::Black),
+            _ => None,
+        }
+    }
+
+    fn parse_castling(chars: &mut Chars) -> Option<(bool, bool, bool, bool)> {
+        let mut c = chars.next()?;
+        if c == '-' {
+            Some((false, false, false, false))
+        } else if c == ' ' {
+            None
+        } else {
+            let mut w_kingside_castling = false;
+            let mut w_queenside_castling = false;
+            let mut b_kingside_castling = false;
+            let mut b_queenside_castling = false;
+
+            while c != ' ' {
+                match c {
+                    'K' => w_kingside_castling = true,
+                    'Q' => w_queenside_castling = true,
+                    'k' => b_kingside_castling = true,
+                    'q' => b_queenside_castling = true,
+                    _ => return None,
+                }
+                c = chars.next()?;
+            }
+            Some((
+                w_kingside_castling,
+                w_queenside_castling,
+                b_kingside_castling,
+                b_queenside_castling,
+            ))
+        }
+    }
+
+    fn parse_en_passant(chars: &mut Chars) -> Option<Option<File>> {
+        let c = chars.next()?;
+        match c {
+            '-' => Some(None),
+            'a'..='e' => {
+                let c = chars.next()?;
+                if '1' <= c && c <= '8' {
+                    Some(File::from_char(c))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn parse_num(chars: &mut Chars) -> Option<u8> {
+        let mut c = chars.next();
+        let mut x = 0;
+        if !c.is_some_and(|x| x.is_ascii_digit()) {
+            return None;
+        }
+        while c.is_some_and(|x| x.is_ascii_digit()) {
+            x = x * 10 + c?.to_digit(10)?;
+            c = chars.next();
+        }
+        Some(x as u8)
+    }
+
+    Some(BbBoardState {
+        pieces: pieces,
+        to_move: to_move,
+        en_passant: en_passant,
+        reversable_moves: reversable_moves,
+        w_kingside_castling: w_kingside_castling,
+        w_queenside_castling: w_queenside_castling,
+        b_kingside_castling: b_kingside_castling,
+        b_queenside_castling: b_queenside_castling,
+    })
+}
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Bitboard {
@@ -577,11 +654,6 @@ mod tests {
     fn pretty_string_should_show_last_bit() {
         let b = Bitboard { v: 2_u64.pow(63) };
 
-        for i in 0..64 {
-            let x = Bitboard { v: 2 ^ i };
-            println!("{}:\n{}\n", i, x.pretty_string());
-        }
-
         let expected = "00000001\n\
          00000000\n\
          00000000\n\
@@ -659,7 +731,45 @@ mod tests {
                              ........\n\
                              PPPPPPPP\n\
                              RNBQKBNR\n";
-        println!("{}", start.pretty_print());
         assert!(start.pretty_print() == expected)
+    }
+
+    #[test]
+    fn fen_parse_start() {
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let start = parse_fen(fen.to_string()).unwrap();
+        assert!(start.w_kingside_castling == true);
+        assert!(start.w_queenside_castling == true);
+        assert!(start.b_kingside_castling == true);
+        assert!(start.b_queenside_castling == true);
+        assert!(start.en_passant == None);
+        assert!(start.reversable_moves == 0);
+        assert!(start.to_move == Side::White);
+        assert!(start.pieces == BbPieceState::start());
+        assert!(start.pieces.is_legal());
+    }
+
+    #[test]
+    fn fen_parse_game_1() {
+        let fen = "rnbqkbnr/pp2pppp/3p4/2p5/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3";
+        let game = parse_fen(fen.to_string()).unwrap();
+        assert!(game.w_kingside_castling == true);
+        assert!(game.w_queenside_castling == true);
+        assert!(game.b_kingside_castling == true);
+        assert!(game.b_queenside_castling == true);
+        assert!(game.en_passant == None);
+        assert!(game.reversable_moves == 0);
+        assert!(game.to_move == Side::Black);
+        let expected = "rnbqkbnr\n\
+             pp..pppp\n\
+             ...p....\n\
+             ..p.....\n\
+             ...PP...\n\
+             .....N..\n\
+             PPP..PPP\n\
+             RNBQKB.R\n"
+            .to_string();
+        assert!(game.pieces.pretty_print() == expected);
+        assert!(game.pieces.is_legal());
     }
 }

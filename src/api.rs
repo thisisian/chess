@@ -1,7 +1,7 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Side {
-    W,
-    B,
+    White,
+    Black,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -26,7 +26,7 @@ pub enum Rank {
     R8 = 7,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum File {
     A = 0,
     B = 1,
@@ -36,6 +36,38 @@ pub enum File {
     F = 5,
     G = 6,
     H = 7,
+}
+
+impl File {
+    pub fn from_char(c: char) -> Option<Self> {
+        match c.to_ascii_lowercase() {
+            'a' => Some(File::A),
+            'b' => Some(File::B),
+            'c' => Some(File::C),
+            'd' => Some(File::D),
+            'e' => Some(File::E),
+            'f' => Some(File::F),
+            'g' => Some(File::G),
+            'h' => Some(File::H),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum PieceColor {
+    WhitePawn = 0,
+    WhiteRook = 1,
+    WhiteKnight = 2,
+    WhiteBishop = 3,
+    WhiteQueen = 4,
+    WhiteKing = 5,
+    BlackPawn = 6,
+    BlackRook = 7,
+    BlackKnight = 8,
+    BlackBishop = 9,
+    BlackQueen = 10,
+    BlackKing = 11,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
