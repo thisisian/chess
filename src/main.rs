@@ -1,11 +1,9 @@
-#![feature(result_contains_err)]
-#![feature(is_some_and)]
 #![allow(dead_code)]
 
-pub mod bitboard;
-pub mod utils;
 pub mod api;
+pub mod bitboard;
 pub mod rnd;
+pub mod utils;
 
 fn main() {
     println!("Hello, world!");

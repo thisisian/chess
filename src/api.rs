@@ -85,7 +85,7 @@ pub enum BoardSide {
 }
 
 #[derive(Debug)]
-enum MoveType {
+pub enum MoveType {
     Quiet,
     Capture,
     CastleQueen,
@@ -95,7 +95,7 @@ enum MoveType {
 }
 
 #[derive(Debug)]
-enum PromotionType {
+pub enum PromotionType {
     Queen,
     Rook,
     Bishop,
@@ -117,27 +117,32 @@ enum Direction {
     Equal,
 }
 
+//
 pub trait GameState {
     fn start() -> Self;
-
-    fn empty() -> Self;
 
     // Print the game state
     fn pretty_print(&self) -> String;
 
+    // Check for logic errors in the piece state
     fn is_legal(&self) -> bool;
 
-    fn make_move(&self, m: Move) -> Self;
+    fn make_move(&self, m: Move) -> Option<Self>
+    where
+        Self: Sized;
+
+    fn to_fen(&self) -> String;
+
+    fn from_fen(s: String) -> Option<Self>
+    where
+        Self: Sized;
 }
 
 pub trait PieceState {
-    // Check for logic errors in the piece state
     fn is_legal(&self) -> bool;
 
     // Print the pieces
     fn pretty_print(&self) -> String;
-
-    fn make_move(&self, m: Move) -> Self;
 
     fn start() -> Self;
 
@@ -147,6 +152,15 @@ pub trait PieceState {
 pub struct Move {
     from: Square,
     to: Square,
+}
+
+impl Move {
+    pub const fn from_idxs(from: u8, to: u8) -> Self {
+        Move {
+            from: Square::from_idx(from),
+            to: Square::from_idx(to),
+        }
+    }
 }
 
 pub trait Board {
@@ -169,17 +183,27 @@ pub trait Board {
 
 #[derive(Clone, Copy)]
 pub struct Square {
-    pub v: u8,
+    pub idx: u8,
 }
 
 impl Square {
-    pub const fn new(v: u8) -> Self {
-        Square { v }
+    pub const fn from_idx(idx: u8) -> Self {
+        Square { idx }
     }
 
     pub const fn from_rank_file(r: Rank, f: File) -> Self {
         Square {
-            v: (r as u8) * 8 + (f as u8),
+            idx: (r as u8) * 8 + (f as u8),
         }
+    }
+
+    pub const fn is_on_left_border(&self) -> bool {
+        let rem = self.idx & 8;
+        rem == 1
+    }
+
+    pub const fn is_on_right_border(&self) -> bool {
+        let rem = self.idx & 8;
+        rem == 0
     }
 }
