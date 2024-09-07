@@ -2,10 +2,10 @@ use std::fmt::Binary;
 use std::ops::*;
 use std::str::Chars;
 
-use crate::api::{File, GameState, Piece, PieceState, Rank, Side, Square};
+use crate::api::{File, GameState, Move, PieceState, Rank, Side, Square};
 use crate::utils::count_bits;
 
-mod moves;
+mod move_gen;
 
 pub const TOP_LEFT: [Square; 64] = [
     Square::from_idx(56),
@@ -92,7 +92,7 @@ struct BbPieceState {
 }
 
 impl PieceState for BbPieceState {
-    fn pretty_print(&self) -> String {
+    fn pretty_string(&self) -> String {
         let mut s = String::new();
         for sq in TOP_LEFT {
             let coord = Bitboard::get_coord(sq);
@@ -188,17 +188,50 @@ impl PieceState for BbPieceState {
 
         return correct_number_of_kings(self) && no_pieces_on_same_square(self);
     }
+
+    fn from_pretty_string(s: &str) -> Option<Self> {
+        match string_board_iter(s) {
+            None => None,
+            Some(it) => {
+                let mut ps = BbPieceState::empty();
+                for (c, sq) in it {
+                    let opt_bb = match c {
+                        'N' => Some(&mut ps.wn),
+                        'B' => Some(&mut ps.wb),
+                        'K' => Some(&mut ps.wk),
+                        'Q' => Some(&mut ps.wq),
+                        'P' => Some(&mut ps.wp),
+                        'R' => Some(&mut ps.wr),
+                        'n' => Some(&mut ps.bn),
+                        'b' => Some(&mut ps.bb),
+                        'k' => Some(&mut ps.bk),
+                        'q' => Some(&mut ps.bq),
+                        'p' => Some(&mut ps.bp),
+                        'r' => Some(&mut ps.br),
+                        _ => None,
+                    };
+                    match opt_bb {
+                        Some(bb) => {
+                            *bb = *bb | (1 << sq.idx);
+                        }
+                        None => (),
+                    }
+                }
+                Some(ps)
+            }
+        }
+    }
 }
 
 impl BbPieceState {
     pub fn white_pieces(&self) -> Bitboard {
         Bitboard {
-            v: self.wb.v & self.wk.v & self.wn.v & self.wp.v & self.wq.v & self.wr.v,
+            v: self.wb.v | self.wk.v | self.wn.v | self.wp.v | self.wq.v | self.wr.v,
         }
     }
     pub fn black_pieces(&self) -> Bitboard {
         Bitboard {
-            v: self.bb.v & self.bk.v & self.bn.v & self.bp.v & self.bq.v & self.br.v,
+            v: self.bb.v | self.bk.v | self.bn.v | self.bp.v | self.bq.v | self.br.v,
         }
     }
 
@@ -255,15 +288,15 @@ impl GameState for BbGameState {
         }
     }
 
-    fn pretty_print(&self) -> String {
-        self.pieces.pretty_print()
+    fn pretty_string(&self) -> String {
+        self.pieces.pretty_string()
     }
 
     fn is_legal(&self) -> bool {
         self.pieces.is_legal()
     }
 
-    fn make_move(&self, m: crate::api::Move) -> Option<BbGameState> {
+    fn make_move(&self, _m: Move) -> Option<BbGameState> {
         todo!()
     }
 
@@ -380,8 +413,9 @@ impl GameState for BbGameState {
                 'a'..='e' => {
                     let c = chars.next()?;
                     if '1' <= c && c <= '8' {
-                        Some(File::from_char(c))
+                        Some(Some(c as u8 - '0' as u8))
                     } else {
+                        // Failed to parse
                         None
                     }
                 }
@@ -441,20 +475,20 @@ impl Bitboard {
         Bitboard { v: !0 }
     }
 
-    const fn rank(r: Rank) -> Bitboard {
-        todo!()
+    const fn from_rank(f: File) -> Bitboard {
+        Bitboard::from_u64(0xffff << f)
     }
 
-    const fn file(f: File) -> Bitboard {
-        todo!()
+    const fn shift_up(&self, shift: u8) -> Bitboard {
+        Bitboard {
+            v: self.v << shift * 8,
+        }
     }
 
-    const fn shift_h(&self, shift: i8) -> Bitboard {
-        todo!()
-    }
-
-    const fn shift_v(&self, shift: i8) -> Bitboard {
-        Bitboard {v: self.v >> shift * 8}
+    const fn shift_down(&self, shift: u8) -> Bitboard {
+        Bitboard {
+            v: self.v >> shift * 8,
+        }
     }
 
     const fn get_coord(s: Square) -> Bitboard {
@@ -655,6 +689,21 @@ impl Not for Bitboard {
     }
 }
 
+fn string_board_iter(s: &str) -> Option<impl Iterator<Item = (char, &Square)>> {
+    if s.lines().any(|l| l.len() != 8) {
+        None
+    } else if s.lines().count() != 8 {
+        None
+    } else {
+        Some(
+            s.chars()
+                .filter(|c| *c != '\n')
+                .zip(TOP_LEFT.iter())
+                .into_iter(),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::bitboard::*;
@@ -792,7 +841,7 @@ mod tests {
     }
 
     #[test]
-    fn bbps_pretty_print_start() {
+    fn bbps_pretty_string_start() {
         let start = BbPieceState::start();
         let expected = "rnbqkbnr\n\
                              pppppppp\n\
@@ -802,7 +851,7 @@ mod tests {
                              ........\n\
                              PPPPPPPP\n\
                              RNBQKBNR\n";
-        assert!(start.pretty_print() == expected)
+        assert!(start.pretty_string() == expected)
     }
 
     #[test]
@@ -840,7 +889,7 @@ mod tests {
              PPP..PPP\n\
              RNBQKB.R\n"
             .to_string();
-        assert!(game.pieces.pretty_print() == expected);
+        assert!(game.pieces.pretty_string() == expected);
         assert!(game.pieces.is_legal());
     }
 }

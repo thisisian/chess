@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Side {
     White,
@@ -26,33 +28,7 @@ pub enum Rank {
     R8 = 7,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum File {
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
-    E = 4,
-    F = 5,
-    G = 6,
-    H = 7,
-}
-
-impl File {
-    pub fn from_char(c: char) -> Option<Self> {
-        match c.to_ascii_lowercase() {
-            'a' => Some(File::A),
-            'b' => Some(File::B),
-            'c' => Some(File::C),
-            'd' => Some(File::D),
-            'e' => Some(File::E),
-            'f' => Some(File::F),
-            'g' => Some(File::G),
-            'h' => Some(File::H),
-            _ => None,
-        }
-    }
-}
+pub type File = u8;
 
 #[derive(Debug)]
 pub enum PieceColor {
@@ -84,7 +60,7 @@ pub enum BoardSide {
     KingSide,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub enum MoveType {
     Quiet,
     Capture,
@@ -94,7 +70,7 @@ pub enum MoveType {
     PromoteCapture(PromotionType),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub enum PromotionType {
     Queen,
     Rook,
@@ -122,7 +98,7 @@ pub trait GameState {
     fn start() -> Self;
 
     // Print the game state
-    fn pretty_print(&self) -> String;
+    fn pretty_string(&self) -> String;
 
     // Check for logic errors in the piece state
     fn is_legal(&self) -> bool;
@@ -141,14 +117,19 @@ pub trait GameState {
 pub trait PieceState {
     fn is_legal(&self) -> bool;
 
-    // Print the pieces
-    fn pretty_print(&self) -> String;
-
     fn start() -> Self;
 
     fn empty() -> Self;
+
+    // Print the pieces
+    fn pretty_string(&self) -> String;
+
+    fn from_pretty_string(s: &str) -> Option<Self>
+    where
+        Self: Sized;
 }
 
+#[derive(Hash, PartialEq, Eq)]
 pub struct Move {
     from: Square,
     to: Square,
@@ -163,6 +144,12 @@ impl Move {
     }
 }
 
+impl fmt::Debug for Move {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Move [{} -> {}]", self.from.idx, self.to.idx)
+    }
+}
+
 pub trait Board {
     fn make_move(&self, m: Move) -> Self;
 
@@ -170,7 +157,7 @@ pub trait Board {
 
     fn test_move(&self, m: Move) -> bool;
 
-    fn pretty_print(&self) -> String;
+    fn pretty_string(&self) -> String;
 
     fn from_fen(s: String) -> Self;
 
@@ -181,7 +168,7 @@ pub trait Board {
     // TODO: validate function
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Square {
     pub idx: u8,
 }
@@ -197,13 +184,11 @@ impl Square {
         }
     }
 
-    pub const fn is_on_left_border(&self) -> bool {
-        let rem = self.idx & 8;
-        rem == 1
+    pub const fn rank(&self) -> u8 {
+        self.idx / 8
     }
 
-    pub const fn is_on_right_border(&self) -> bool {
-        let rem = self.idx & 8;
-        rem == 0
+    pub const fn file(&self) -> u8 {
+        self.idx % 8
     }
 }
