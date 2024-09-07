@@ -119,6 +119,8 @@ fn bishop_test1() {
     test_move_gen(board, &[mv1, mv2])
 }
 
+
+
 #[rustfmt::skip]
 #[test]
 fn knight_test1() {
@@ -373,7 +375,6 @@ fn moves_from_pretty_string(mv_strs: &[&str]) -> std::collections::HashSet<(Move
                 's' => opt_start = Some(*sq),
                 _ => (),
             }
-            ()
         }
         match opt_start {
             None => (),

@@ -180,7 +180,7 @@ impl Square {
 
     pub const fn from_rank_file(r: Rank, f: File) -> Self {
         Square {
-            idx: (r as u8) * 8 + (f as u8),
+            idx: (r as u8) * 8 + f,
         }
     }
 

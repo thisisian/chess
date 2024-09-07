@@ -186,7 +186,7 @@ impl PieceState for BbPieceState {
             ps.v == 0
         }
 
-        return correct_number_of_kings(self) && no_pieces_on_same_square(self);
+        correct_number_of_kings(self) && no_pieces_on_same_square(self)
     }
 
     fn from_pretty_string(s: &str) -> Option<Self> {
@@ -210,11 +210,8 @@ impl PieceState for BbPieceState {
                         'r' => Some(&mut ps.br),
                         _ => None,
                     };
-                    match opt_bb {
-                        Some(bb) => {
-                            *bb = *bb | (1 << sq.idx);
-                        }
-                        None => (),
+                    if let Some(bb) = opt_bb {
+                        *bb |= 1 << sq.idx;
                     }
                 }
                 Some(ps)
@@ -412,8 +409,8 @@ impl GameState for BbGameState {
                 '-' => Some(None),
                 'a'..='e' => {
                     let c = chars.next()?;
-                    if '1' <= c && c <= '8' {
-                        Some(Some(c as u8 - '0' as u8))
+                    if ('1'..='8').contains(&c) {
+                        Some(Some(c as u8 - b'0'))
                     } else {
                         // Failed to parse
                         None
@@ -437,14 +434,14 @@ impl GameState for BbGameState {
         }
 
         Some(BbGameState {
-            pieces: pieces,
-            to_move: to_move,
-            en_passant: en_passant,
-            reversable_moves: reversable_moves,
-            w_kingside_castling: w_kingside_castling,
-            w_queenside_castling: w_queenside_castling,
-            b_kingside_castling: b_kingside_castling,
-            b_queenside_castling: b_queenside_castling,
+            pieces,
+            to_move,
+            en_passant,
+            reversable_moves,
+            w_kingside_castling,
+            w_queenside_castling,
+            b_kingside_castling,
+            b_queenside_castling,
         })
     }
 }
@@ -481,13 +478,13 @@ impl Bitboard {
 
     const fn shift_up(&self, shift: u8) -> Bitboard {
         Bitboard {
-            v: self.v << shift * 8,
+            v: self.v << (shift * 8),
         }
     }
 
     const fn shift_down(&self, shift: u8) -> Bitboard {
         Bitboard {
-            v: self.v >> shift * 8,
+            v: self.v >> (shift * 8),
         }
     }
 
@@ -690,16 +687,13 @@ impl Not for Bitboard {
 }
 
 fn string_board_iter(s: &str) -> Option<impl Iterator<Item = (char, &Square)>> {
-    if s.lines().any(|l| l.len() != 8) {
-        None
-    } else if s.lines().count() != 8 {
+    if s.lines().any(|l| l.len() != 8) || s.lines().count() != 8 {
         None
     } else {
         Some(
             s.chars()
                 .filter(|c| *c != '\n')
                 .zip(TOP_LEFT.iter())
-                .into_iter(),
         )
     }
 }

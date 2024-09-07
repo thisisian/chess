@@ -10,15 +10,13 @@ fn generate_slides(
     start_sq: &Square,
     start_bb: &Bitboard,
     moves: &mut Vec<(Move, MoveType)>,
-    f_it: impl Fn(&mut Bitboard, &mut Square) -> (), // Iterator function
+    f_it: impl Fn(&mut Bitboard, &mut Square), // Iterator function
 ) {
     let mut tgt_bb = *start_bb;
     let mut tgt_sq = *start_sq;
     f_it(&mut tgt_bb, &mut tgt_sq);
     loop {
-        if tgt_bb.is_empty() {
-            break;
-        } else if tgt_bb.is_intersecting(my_pieces) {
+        if tgt_bb.is_empty() || tgt_bb.is_intersecting(my_pieces) {
             break;
         } else if tgt_bb.is_intersecting(op_pieces) {
             moves.push((Move::from_idxs(start_sq.idx, tgt_sq.idx), MoveType::Capture));
@@ -40,15 +38,15 @@ fn generate_rook_slides(
     // Up
     generate_slides(my_pieces, op_pieces, start_sq, start_bb, moves, |bb, sq| {
         *bb = bb.shift_up(1);
-        sq.idx = sq.idx + 8;
+        sq.idx += 8;
     });
     // Right
     generate_slides(my_pieces, op_pieces, start_sq, start_bb, moves, |bb, sq| {
         if sq.file() == 7 {
             *bb = Bitboard::empty();
         } else {
-            *bb = *bb << 1;
-            sq.idx = sq.idx + 1;
+            *bb <<= 1;
+            sq.idx += 1;
         }
     });
     // Down
@@ -61,7 +59,7 @@ fn generate_rook_slides(
         if sq.file() == 0 {
             *bb = Bitboard::empty();
         } else {
-            *bb = *bb >> 1;
+            *bb >>= 1;
             sq.idx = sq.idx.saturating_sub(1);
         }
     });
@@ -80,7 +78,7 @@ fn generate_bishop_slides(
             *bb = Bitboard::empty();
         } else {
             *bb = bb.shift_up(1) << 1;
-            sq.idx = sq.idx + 9;
+            sq.idx += 9;
         }
     });
     // Lower-right
@@ -107,7 +105,7 @@ fn generate_bishop_slides(
             *bb = Bitboard::empty();
         } else {
             *bb = bb.shift_up(1) >> 1;
-            sq.idx = sq.idx + 7;
+            sq.idx += 7;
         }
     });
 }
@@ -282,26 +280,26 @@ fn generate_moves(
     my_pieces: &Bitboard,
     op_pieces: &Bitboard,
     moves: &mut Vec<(Move, MoveType)>,
-    move_gen: impl Fn(&Bitboard, &Bitboard, &Square, &Bitboard, &mut Vec<(Move, MoveType)>) -> (),
+    move_gen: impl Fn(&Bitboard, &Bitboard, &Square, &Bitboard, &mut Vec<(Move, MoveType)>),
 ) {
     let mut start_sq: Square = Square::from_idx(0);
     let mut start_bb = Bitboard::from_u64(1);
     let mut _my_moving_pieces = *my_moving_pieces;
     while _my_moving_pieces.is_nonempty() {
         if (_my_moving_pieces.v & 1) != 0 {
-            move_gen(&my_pieces, &op_pieces, &start_sq, &start_bb, moves);
+            move_gen(my_pieces, op_pieces, &start_sq, &start_bb, moves);
         }
-        _my_moving_pieces.v = _my_moving_pieces.v >> 1;
-        start_bb.v = start_bb.v << 1;
-        start_sq.idx = start_sq.idx + 1;
+        _my_moving_pieces.v >>= 1;
+        start_bb.v <<= 1;
+        start_sq.idx += 1;
     }
 }
 
 fn generate_all_moves(ps: &BbPieceState, side: &Side) -> Vec<(Move, MoveType)> {
     let mut moves = Vec::new();
-    generate_knight_moves(&ps, side, &mut moves);
-    generate_rook_moves(&ps, side, &mut moves);
-    generate_bishop_moves(&ps, side, &mut moves);
-    generate_queen_moves(&ps, side, &mut moves);
+    generate_knight_moves(ps, side, &mut moves);
+    generate_rook_moves(ps, side, &mut moves);
+    generate_bishop_moves(ps, side, &mut moves);
+    generate_queen_moves(ps, side, &mut moves);
     moves
 }
